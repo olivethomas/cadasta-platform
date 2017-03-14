@@ -86,7 +86,8 @@ class SanitizeFieldsModel:
                 if f.name not in errors.keys():
                     errors[f.name] = []
 
-                errors[f.name].append(_("Input can not contain < > ; \\ or /"))
+                errors[f.name].append(
+                    _("Input can not contain < > ; \\ / or emojis."))
 
         if errors:
             raise ValidationError(errors)

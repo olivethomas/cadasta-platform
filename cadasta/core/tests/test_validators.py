@@ -72,6 +72,14 @@ class ValidationTest(TestCase):
 
     def test_is_sane(self):
         assert sanitize_string('text') is True
+        assert sanitize_string('大家好') is True
+        assert sanitize_string('ф') is True
+        assert sanitize_string('Ξ') is True
+        assert sanitize_string('ß') is True
+        assert sanitize_string('œ') is True
+        assert sanitize_string(':)') is True
+        assert sanitize_string('İ') is True
+        assert sanitize_string('עזרא ברש') is True
         assert sanitize_string('<text>') is False
         assert sanitize_string('<text>blah</text>') is False
         assert sanitize_string('\\text') is False
@@ -81,3 +89,5 @@ class ValidationTest(TestCase):
         assert sanitize_string('text;') is False
         assert sanitize_string('te; xt') is False
         assert sanitize_string('te;xt') is False
+        assert sanitize_string('🍺') is False
+        assert sanitize_string('te🍺xt') is False

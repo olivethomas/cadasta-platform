@@ -177,7 +177,7 @@ class SanitizeFieldsModelTest(TestCase):
 
         with pytest.raises(ValidationError) as e:
             instance.clean_fields()
-            assert ("Input can not contain < > ; \\ or /" in
+            assert ("Input can not contain < > ; \\ / or emojis" in
                     e.error_dict['name'])
 
     def test_invalid_number(self):
@@ -192,6 +192,6 @@ class SanitizeFieldsModelTest(TestCase):
 
         with pytest.raises(ValidationError) as e:
             instance.clean_fields()
-            assert ("Input can not contain < > ; \\ or /" in
+            assert ("Input can not contain < > ; \\ / or emojis" in
                     e.error_dict['name'])
             assert e.error_dict.get('number') is not None
