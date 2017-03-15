@@ -1,5 +1,6 @@
 import itertools
 import math
+from jsonattrs.fields import JSONAttributeField
 from core.util import slugify
 from core.validators import sanitize_string
 from django.utils.translation import ugettext as _
@@ -77,12 +78,17 @@ class SanitizeFieldsModel:
         for f in self._meta.fields:
             if (f.name in exclude or
                     f.name in self.INGNORED_NAMES or
-                    type(f) not in CHECK_FIELDS or
                     len(f.choices)):
                 continue
 
+            valid = True
             raw_value = getattr(self, f.attname)
-            if not sanitize_string(raw_value):
+            if type(f) in CHECK_FIELDS:
+                valid = sanitize_string(raw_value)
+            elif type(f) == JSONAttributeField:
+                valid = all(sanitize_string(raw_value[k]) for k in raw_value)
+
+            if not valid:
                 if f.name not in errors.keys():
                     errors[f.name] = []
 

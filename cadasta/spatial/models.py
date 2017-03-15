@@ -1,4 +1,4 @@
-from core.models import RandomIDModel
+from core.models import RandomIDModel, SanitizeFieldsModel
 from django.core.urlresolvers import reverse
 from django.contrib.gis.db.models import GeometryField
 from django.db import models
@@ -20,7 +20,7 @@ from jsonattrs.decorators import fix_model_for_attributes
 
 @fix_model_for_attributes
 @permissioned_model
-class SpatialUnit(ResourceModelMixin, RandomIDModel):
+class SpatialUnit(SanitizeFieldsModel, ResourceModelMixin, RandomIDModel):
     """A single spatial unit: has a type, an optional geometry, a
     type-dependent set of attributes, and a set of relationships to
     other spatial units.
@@ -149,7 +149,7 @@ def check_extent(sender, instance, **kwargs):
 
 @fix_model_for_attributes
 @permissioned_model
-class SpatialRelationship(RandomIDModel):
+class SpatialRelationship(SanitizeFieldsModel, RandomIDModel):
     """A relationship between spatial units: encodes simple logical terms
     like ``su1 is-contained-in su2`` or ``su1 is-split-of su2``.  May
     have additional requirements.

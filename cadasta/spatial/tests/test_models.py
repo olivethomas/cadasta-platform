@@ -1,5 +1,6 @@
 import pytest
 
+from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
 from django.test import TestCase
 from jsonattrs.models import Attribute, AttributeType, Schema
@@ -137,6 +138,20 @@ class SpatialUnitTest(UserTestCase, TestCase):
         assert not ContentObject.objects.filter(
             object_id=su.id, resource=resource).exists()
         assert SpatialUnit.objects.all().count() == 0
+
+    def test_clean_invalid_dict(self):
+        content_type = ContentType.objects.get(
+            app_label='spatial', model='spatialunit')
+        sch = Schema.objects.create(content_type=content_type, selectors=())
+        attr_type = AttributeType.objects.get(name="text")
+        Attribute.objects.create(
+            schema=sch, name='description', long_name='Description',
+            required=False, index=1, attr_type=attr_type
+        )
+        su = SpatialUnitFactory.build(attributes={"description": "<html>"})
+
+        with pytest.raises(ValidationError):
+            su.clean_fields(exclude=['id', 'project', 'geometry'])
 
 
 class SpatialRelationshipTest(UserTestCase, TestCase):
@@ -367,3 +382,18 @@ class SpatialRelationshipTest(UserTestCase, TestCase):
             SpatialRelationshipFactory(
                 su1__project=project
             )
+
+    def test_clean_invalid_dict(self):
+        content_type = ContentType.objects.get(
+            app_label='spatial', model='spatialrelationship')
+        sch = Schema.objects.create(content_type=content_type, selectors=())
+        attr_type = AttributeType.objects.get(name="text")
+        Attribute.objects.create(
+            schema=sch, name='description', long_name='Description',
+            required=False, index=1, attr_type=attr_type
+        )
+        rel = SpatialRelationshipFactory.build(
+            attributes={"description": "<html>"})
+
+        with pytest.raises(ValidationError):
+            rel.clean_fields(exclude=['id', 'project', 'su1', 'su2'])

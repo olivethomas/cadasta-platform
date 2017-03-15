@@ -27,7 +27,7 @@ class BaseImporterTest(UserTestCase, TestCase):
     def test_get_schema_attrs(self):
         project = ProjectFactory.create()
         importer = Importer(project)
-        assert len(importer.get_schema_attrs().keys()) == 5
+        assert len(importer.get_schema_attrs().keys()) == 6
         assert importer.get_schema_attrs()['spatial.spatialunit'] == {}
 
     def test_import_data_not_implemented(self):

@@ -1,9 +1,14 @@
 import pytest
 import random
+from jsonattrs.fields import JSONAttributeField, JSONAttributes
+from jsonattrs.decorators import fix_model_for_attributes
+from jsonattrs.models import Attribute, AttributeType, Schema
+from django.contrib.contenttypes.models import ContentType
 from django.db.models import SlugField, CharField, Model, IntegerField
 from django.test import TestCase
 from django.core.exceptions import ValidationError
 from ..models import RandomIDModel, SlugModel, SanitizeFieldsModel
+from core.tests.utils.cases import UserTestCase
 
 
 class MyRandomIdModel(RandomIDModel):
@@ -156,42 +161,67 @@ class SlugModelTest(TestCase):
         assert instance.slug[-4:] == '-100'
 
 
+@fix_model_for_attributes
 class MySanitizeFieldsModel(SanitizeFieldsModel, Model):
     name = CharField(max_length=100)
     number = IntegerField(max_length=200, unique=True)
+    attributes = JSONAttributeField(default={}, blank=True)
 
     class Meta:
         app_label = 'core'
 
 
-class SanitizeFieldsModelTest(TestCase):
+class SanitizeFieldsModelTest(UserTestCase, TestCase):
     abstract_model = SanitizeFieldsModel
 
     def test_valid_model(self):
-        instance = MySanitizeFieldsModel(name='blah', number=2)
+        instance = MySanitizeFieldsModel(name='blah', number=2, attributes={})
         instance.clean_fields()
         # no assertion because the method raises an exception if the test fails
 
     def test_invalid_name(self):
-        instance = MySanitizeFieldsModel(name='<blah>', number=2)
-
+        instance = MySanitizeFieldsModel(name='<blah>', number=2,
+                                         attributes={})
         with pytest.raises(ValidationError) as e:
             instance.clean_fields()
-            assert ("Input can not contain < > ; \\ / or emojis" in
-                    e.error_dict['name'])
+        assert ("Input can not contain < > ; \\ / or emojis" in
+                e.value.error_dict['name'][0].message)
 
     def test_invalid_number(self):
-        instance = MySanitizeFieldsModel(name='blah', number='blubb')
+        instance = MySanitizeFieldsModel(name='blah', number='blubb',
+                                         attributes={})
 
         with pytest.raises(ValidationError) as e:
             instance.clean_fields()
-            assert e.error_dict.get('number') is not None
+        assert e.value.error_dict['number'][0].message is not None
+
+    def test_invalid_dict(self):
+        content_type = ContentType.objects.get(
+            app_label='core', model='mysanitizefieldsmodel')
+        sch = Schema.objects.create(content_type=content_type, selectors=())
+        attr_type = AttributeType.objects.get(name="text")
+        Attribute.objects.create(
+            schema=sch, name='description', long_name='Description',
+            required=False, index=1, attr_type=attr_type
+        )
+
+        instance = MySanitizeFieldsModel(
+            name='blah',
+            number=2,
+            attributes=JSONAttributes({'description': '<value>'})
+        )
+
+        with pytest.raises(ValidationError) as e:
+            instance.clean_fields()
+        assert ("Input can not contain < > ; \\ / or emojis" in
+                e.value.error_dict['attributes'][0].message)
 
     def test_invalid_name_and_number(self):
-        instance = MySanitizeFieldsModel(name='<blah>', number=2)
+        instance = MySanitizeFieldsModel(name='<blah>', number='blubb',
+                                         attributes={})
 
         with pytest.raises(ValidationError) as e:
             instance.clean_fields()
-            assert ("Input can not contain < > ; \\ / or emojis" in
-                    e.error_dict['name'])
-            assert e.error_dict.get('number') is not None
+        assert ("Input can not contain < > ; \\ / or emojis" in
+                e.value.error_dict['name'][0].message)
+        assert e.value.error_dict['number'][0].message is not None

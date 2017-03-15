@@ -109,11 +109,25 @@ class PartyTest(UserTestCase, TestCase):
         assert Party.objects.all().count() == 0
 
     def test_clean_invalid(self):
-        party = PartyFactory.build(
-            name='<html>')
+        party = PartyFactory.build(name='<html>')
 
         with pytest.raises(ValidationError):
-            party.clean_fields()
+            party.clean_fields(
+                exclude=['id', 'project', 'attributes', 'contacts'])
+
+    def test_clean_invalid_dict(self):
+        content_type = ContentType.objects.get(
+            app_label='party', model='party')
+        sch = Schema.objects.create(content_type=content_type, selectors=())
+        attr_type = AttributeType.objects.get(name="text")
+        Attribute.objects.create(
+            schema=sch, name='description', long_name='Description',
+            required=False, index=1, attr_type=attr_type
+        )
+        party = PartyFactory.build(attributes={"description": "<html>"})
+
+        with pytest.raises(ValidationError):
+            party.clean_fields(exclude=['id', 'name', 'project', 'contacts'])
 
 
 class PartyRelationshipTest(UserTestCase, TestCase):
@@ -196,6 +210,21 @@ class PartyRelationshipTest(UserTestCase, TestCase):
                 party1__project=project1,
                 party2__project=project2
             )
+
+    def test_clean_invalid_dict(self):
+        content_type = ContentType.objects.get(
+            app_label='party', model='partyrelationship')
+        sch = Schema.objects.create(content_type=content_type, selectors=())
+        attr_type = AttributeType.objects.get(name="text")
+        Attribute.objects.create(
+            schema=sch, name='description', long_name='Description',
+            required=False, index=1, attr_type=attr_type
+        )
+        rel = PartyRelationshipFactory.build(
+            attributes={"description": "<html>"})
+
+        with pytest.raises(ValidationError):
+            rel.clean_fields(exclude=['id', 'party1', 'party2', 'project'])
 
 
 class TenureRelationshipTest(UserTestCase, TestCase):
@@ -320,6 +349,22 @@ class TenureRelationshipTest(UserTestCase, TestCase):
         assert not ContentObject.objects.filter(
             object_id=tenure.id, resource=resource).exists()
         assert TenureRelationship.objects.all().count() == 0
+
+    def test_clean_invalid_dict(self):
+        content_type = ContentType.objects.get(
+            app_label='party', model='tenurerelationship')
+        sch = Schema.objects.create(content_type=content_type, selectors=())
+        attr_type = AttributeType.objects.get(name="text")
+        Attribute.objects.create(
+            schema=sch, name='description', long_name='Description',
+            required=False, index=1, attr_type=attr_type
+        )
+        rel = TenureRelationshipFactory.build(
+            attributes={"description": "<html>"})
+
+        with pytest.raises(ValidationError):
+            rel.clean_fields(
+                exclude=['id', 'party', 'spatial_unit', 'project'])
 
 
 class TenureRelationshipTypeTest(UserTestCase, TestCase):
